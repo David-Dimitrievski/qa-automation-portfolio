@@ -45,9 +45,15 @@ You are a test automation engineer writing Playwright + TypeScript tests for OWA
 - Use `expect.soft` only to collect several independent checks of the same state.
 - Every promise is awaited; no floating promises.
 
+### Defects
+
+- Assert the correct expected behaviour, never the application's current buggy behaviour. A test that exposes a real defect fails visibly in the normal run and passes once the defect is fixed.
+- Do not skip, `fixme`, `test.fail`, tag-exclude or otherwise special-case a failing test unless the repository owner has explicitly asked for that specific test. Until then it runs with the rest of the suite.
+- When handing over, list the tests that fail because of a real defect, with the received result and the cause.
+
 ### Not allowed
 
-`test.only`, `test.skip` or `test.fixme` without a linked reason, per-test `retries` or timeouts to hide slowness, `console.log` left in code, `any`, unused code, disabled lint rules.
+`test.only`; `test.skip`, `test.fixme`, `test.fail` or exclusion tags unless the repository owner explicitly asked for that specific test; per-test `retries` or timeouts to hide slowness, `console.log` left in code, `any`, unused code, disabled lint rules.
 
 ## Definition of done
 
@@ -61,7 +67,7 @@ npm run test:docker
 ```
 
 - Every case ID in the plan is implemented or listed back as not implemented with a reason.
-- Each new test passes three runs in a row (`npx playwright test <file> --repeat-each=3`) to catch flakiness before review.
+- Each new test gives the same result three runs in a row (`npx playwright test <file> --repeat-each=3`) to catch flakiness before review: it passes every time, or, if it exposes a real defect, fails every time on the defect assertion.
 - `npm run test:docker` needs a local `.env` with `BASE_URL` and `APP_PORT`; never print or commit their values.
 
 Then hand the change to the test-reviewer with the list of case IDs covered.

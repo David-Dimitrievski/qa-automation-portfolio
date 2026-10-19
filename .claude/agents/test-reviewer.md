@@ -16,6 +16,8 @@ You are a senior QA reviewer. Review the change (`git diff main...HEAD` plus unc
 
 Run `npm run lint`, `npm run typecheck` and `npm run format:check`. Any failure is a **blocker**.
 
+Then run the changed specs with `--repeat-each=3` and compare the failures with the writer's list of tests that fail because of a real defect.
+
 ## Step 2: checklist
 
 Mark every item PASS, FAIL or N/A. Cite `file:line` for every FAIL.
@@ -33,7 +35,7 @@ Mark every item PASS, FAIL or N/A. Cite `file:line` for every FAIL.
 - B2 Every `expect` on a locator or page is web-first and awaited; no `expect(await x.isVisible())` patterns.
 - B3 No floating promises (every Playwright call is awaited).
 - B4 Tests are independent: no order dependence, no shared mutable state, unique data per test.
-- B5 No `test.only`; any `skip` or `fixme` has a linked reason.
+- B5 No `test.only`. No `skip`, `fixme`, `test.fail`, exclusion tag or assertion of known buggy behaviour unless the repository owner explicitly approved it for that test (cite where).
 - B6 No per-test retries or inflated timeouts that hide slowness.
 
 ### C. Assertions and design
@@ -56,7 +58,11 @@ Mark every item PASS, FAIL or N/A. Cite `file:line` for every FAIL.
 
 - E1 Every P1 case in the plan is implemented, or its absence is justified.
 - E2 No rule is covered at both the UI and API layers.
-- E3 Security cases name their OWASP API Top 10 (2023) or WSTG reference and state whether they check a control or document a known weakness.
+- E3 Security cases name their OWASP API Top 10 (2023) or WSTG reference and assert the correct, secure behaviour.
+
+## Failing tests caused by real defects
+
+A test that fails because the application has a real defect is not a finding, as long as it asserts the correct expected behaviour and fails consistently on that assertion. List these tests in a separate **Defects found** section with the received result. They do not block the verdict.
 
 ## Severity
 
@@ -72,6 +78,9 @@ Gates: lint PASS|FAIL, typecheck PASS|FAIL, format PASS|FAIL
 
 Checklist:
 A1 PASS ... (one line per item)
+
+Defects found (failing tests caused by real application defects; not blockers):
+- <case ID> file:line: expected ..., received ...
 
 Findings (most severe first):
 1. [Blocker|Should fix|Nit] <ID> file:line
