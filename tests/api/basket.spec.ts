@@ -60,20 +60,18 @@ test.describe('GET /rest/basket/{id}', () => {
     },
   );
 
-  // Known weakness (OWASP API1:2023 BOLA): basket ownership is not checked on read.
+  // Security control (OWASP API1:2023 BOLA): a user cannot read another user's basket.
   test(
-    "API-BSKT-003 should let a user read another user's basket",
-    { tag: '@known-weakness' },
+    "API-BSKT-003 should reject reading another user's basket",
+    { tag: '@security-control' },
     async ({ basketApi, user, otherUser }) => {
       await addAppleJuice(basketApi, otherUser);
 
       const response = await basketApi.get(otherUser.basketId, user.token);
 
-      expect(response.status()).toBe(200);
-      const { data } = await readJson<Envelope<Basket>>(response);
-      expectBasketSchema(data);
-      expect(data).toMatchObject({ id: otherUser.basketId, UserId: otherUser.id });
-      expect(quantitiesIn(data)).toEqual([{ id: APPLE_JUICE.id, quantity: 1 }]);
+      expect([401, 403, 404], `status ${response.status()} should be 401, 403 or 404`).toContain(
+        response.status(),
+      );
     },
   );
 });
@@ -103,17 +101,18 @@ test.describe('POST /api/BasketItems', () => {
     expect(quantitiesIn(basket)).toEqual([{ id: APPLE_JUICE.id, quantity: 2 }]);
   });
 
-  // Known weakness (OWASP WSTG-ERRH-01, improper error handling): the unique constraint surfaces
-  // as an unhandled 500.
+  // Security control (OWASP WSTG-ERRH-01): a duplicate product is a client error, not a 500.
   test(
-    'API-BSKT-006 should fail with 500 when the same product is added twice',
-    { tag: '@known-weakness' },
+    'API-BSKT-006 should reject adding the same product twice with a client error',
+    { tag: '@security-control' },
     async ({ basketApi, user }) => {
       await addAppleJuice(basketApi, user, 2);
 
       const response = await basketApi.addItem(basketItemFor(user), user.token);
 
-      expect(response.status()).toBe(500);
+      expect([400, 409], `status ${response.status()} should be 400 or 409`).toContain(
+        response.status(),
+      );
       expect(quantitiesIn(await basketOf(basketApi, user))).toEqual([
         { id: APPLE_JUICE.id, quantity: 2 },
       ]);
@@ -133,32 +132,31 @@ test.describe('POST /api/BasketItems', () => {
     },
   );
 
-  // Known weakness (OWASP WSTG-ERRH-01, improper error handling): an unknown product id is an
-  // unhandled 500, not a 4xx.
+  // Security control (OWASP WSTG-ERRH-01): an unknown product id is a client error, not a 500.
   test(
-    'API-BSKT-008 should fail with 500 for an unknown product',
-    { tag: '@known-weakness' },
+    'API-BSKT-008 should reject an unknown product',
+    { tag: '@security-control' },
     async ({ basketApi, user }) => {
       const response = await basketApi.addItem(
         basketItemFor(user, { ProductId: UNKNOWN_ID }),
         user.token,
       );
 
-      expect(response.status()).toBe(500);
+      expect([400, 404], `status ${response.status()} should be 400 or 404`).toContain(
+        response.status(),
+      );
     },
   );
 
-  // Known weakness (OWASP WSTG-BUSL): a zero quantity is accepted.
+  // Security control (OWASP WSTG-BUSL-01): the quantity must be positive.
   test(
-    'API-BSKT-009 should accept a quantity of zero',
-    { tag: '@known-weakness' },
+    'API-BSKT-009 should reject a quantity of zero',
+    { tag: '@security-control' },
     async ({ basketApi, user }) => {
       const response = await basketApi.addItem(basketItemFor(user, { quantity: 0 }), user.token);
 
-      expect(response.status()).toBe(200);
-      const { data } = await readJson<Envelope<BasketItem>>(response);
-      expectBasketItemSchema(data);
-      expect(data.quantity).toBe(0);
+      expect(response.status()).toBe(400);
+      expect((await basketOf(basketApi, user)).Products).toEqual([]);
     },
   );
 
@@ -184,15 +182,14 @@ test.describe('POST /api/BasketItems', () => {
     },
   );
 
-  // Known weakness (OWASP WSTG-ERRH-01, improper error handling): a malformed body is an
-  // unhandled 500, not a 400.
+  // Security control (OWASP WSTG-ERRH-01): a malformed body is a 400, not a 500.
   test(
-    'API-BSKT-012 should fail with 500 for malformed JSON',
-    { tag: '@known-weakness' },
+    'API-BSKT-012 should reject malformed JSON with 400',
+    { tag: '@security-control' },
     async ({ basketApi, user }) => {
       const response = await basketApi.addItemRaw('{bad', user.token);
 
-      expect(response.status()).toBe(500);
+      expect(response.status()).toBe(400);
     },
   );
 });
@@ -216,35 +213,37 @@ test.describe('PUT /api/BasketItems/{id}', () => {
     ]);
   });
 
-  // Known weakness (OWASP API1:2023 BOLA): item ownership is not checked on update.
+  // Security control (OWASP API1:2023 BOLA): a user cannot change another user's basket item.
   test(
-    "API-BSKT-014 should let a user change another user's basket item",
-    { tag: '@known-weakness' },
+    "API-BSKT-014 should reject changing another user's basket item",
+    { tag: '@security-control' },
     async ({ basketApi, user, otherUser }) => {
       const othersItem = await addAppleJuice(basketApi, otherUser);
 
       const response = await basketApi.updateQuantity(othersItem.id, 5, user.token);
 
-      expect(response.status()).toBe(200);
+      expect([401, 403, 404], `status ${response.status()} should be 401, 403 or 404`).toContain(
+        response.status(),
+      );
       expect(quantitiesIn(await basketOf(basketApi, otherUser))).toEqual([
-        { id: APPLE_JUICE.id, quantity: 5 },
+        { id: APPLE_JUICE.id, quantity: 1 },
       ]);
     },
   );
 
-  // Known weakness (OWASP WSTG-BUSL): a negative quantity is accepted.
+  // Security control (OWASP WSTG-BUSL-01): the quantity must be positive.
   test(
-    'API-BSKT-015 should accept a negative quantity',
-    { tag: '@known-weakness' },
+    'API-BSKT-015 should reject a negative quantity',
+    { tag: '@security-control' },
     async ({ basketApi, user }) => {
       const item = await addAppleJuice(basketApi, user);
 
       const response = await basketApi.updateQuantity(item.id, -1, user.token);
 
-      expect(response.status()).toBe(200);
-      const { data } = await readJson<Envelope<BasketItem>>(response);
-      expectUpdatedBasketItemSchema(data);
-      expect(data).toMatchObject({ id: item.id, quantity: -1 });
+      expect(response.status()).toBe(400);
+      expect(quantitiesIn(await basketOf(basketApi, user))).toEqual([
+        { id: APPLE_JUICE.id, quantity: 1 },
+      ]);
     },
   );
 });

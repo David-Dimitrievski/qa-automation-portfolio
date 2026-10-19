@@ -42,47 +42,46 @@ test.describe('POST /api/Users (registration)', () => {
     });
   });
 
-  // Known weakness (OWASP WSTG-INPV): no email format validation.
+  // Security control (OWASP WSTG-BUSL-01): the email must be a valid address.
   test(
-    'API-AUTH-003 should accept an email without an @ sign',
-    { tag: '@known-weakness' },
+    'API-AUTH-003 should reject an email without an @ sign',
+    { tag: '@security-control' },
     async ({ authApi }) => {
       const email = `notanemail-${randomUUID()}`;
 
       const response = await authApi.register(newRegistration({ email }));
 
-      expect(response.status()).toBe(201);
-      const { data } = await readJson<Envelope<User>>(response);
-      expectUserSchema(data);
-      expect(data.email).toBe(email);
+      expect(response.status()).toBe(400);
+      const body = await readJson<ValidationError>(response);
+      expect(body.errors).toContainEqual(expect.objectContaining({ field: 'email' }));
     },
   );
 
-  // Known weakness (OWASP WSTG-INPV): email is not a required field.
+  // Security control (OWASP WSTG-BUSL-01): the email is a required field.
   test(
-    'API-AUTH-004 should accept a registration without an email',
-    { tag: '@known-weakness' },
+    'API-AUTH-004 should reject a registration without an email',
+    { tag: '@security-control' },
     async ({ authApi }) => {
       const response = await authApi.register(newRegistration({ email: undefined }));
 
-      expect(response.status()).toBe(201);
-      const { data } = await readJson<Envelope<User>>(response);
-      expectUserSchema(data);
-      expect(data.email).toBeNull();
+      expect(response.status()).toBe(400);
+      const body = await readJson<ValidationError>(response);
+      expect(body.errors).toContainEqual(expect.objectContaining({ field: 'email' }));
     },
   );
 
-  // Known weakness (OWASP API3:2023 BOPLA, mass assignment): the client can choose its own role.
+  // Security control (OWASP API3:2023 BOPLA, mass assignment): a client cannot choose its own
+  // role; the privileged field is ignored and the account is created as a customer.
   test(
-    'API-AUTH-005 should let a client self-assign the admin role',
-    { tag: '@known-weakness' },
+    'API-AUTH-005 should ignore a self-assigned admin role',
+    { tag: '@security-control' },
     async ({ authApi }) => {
       const response = await authApi.register(newRegistration({ role: 'admin' }));
 
       expect(response.status()).toBe(201);
       const { data } = await readJson<Envelope<User>>(response);
       expectUserSchema(data);
-      expect(data.role).toBe('admin');
+      expect(data.role).toBe('customer');
     },
   );
 });
