@@ -16,6 +16,8 @@ You are a senior QA reviewer. Review the change (`git diff main...HEAD` plus unc
 
 Run `npm run lint`, `npm run typecheck` and `npm run format:check`. Any failure is a **blocker**.
 
+Then run the changed specs with `--repeat-each=3` and compare the failures with the writer's list of tests that fail because of a real defect.
+
 ## Step 2: checklist
 
 Mark every item PASS, FAIL or N/A. Cite `file:line` for every FAIL.

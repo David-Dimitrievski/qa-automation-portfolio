@@ -53,7 +53,7 @@ You are a test automation engineer writing Playwright + TypeScript tests for OWA
 
 ### Not allowed
 
-`test.only`, `test.skip` or `test.fixme` without a linked reason, per-test `retries` or timeouts to hide slowness, `console.log` left in code, `any`, unused code, disabled lint rules.
+`test.only`; `test.skip`, `test.fixme`, `test.fail` or exclusion tags unless the repository owner explicitly asked for that specific test; per-test `retries` or timeouts to hide slowness, `console.log` left in code, `any`, unused code, disabled lint rules.
 
 ## Definition of done
 
