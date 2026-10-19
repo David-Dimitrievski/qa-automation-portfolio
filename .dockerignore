@@ -1,0 +1,20 @@
+# Keep secrets and local output out of the build context
+.env
+.env.*
+!.env.example
+
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+playwright/.auth/
+dist/
+
+.git/
+.github/
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
