@@ -3,9 +3,11 @@ name: qa-automation-portfolio
 services:
   juice-shop:
     image: bkimminich/juice-shop:v20.3.0
+    environment:
+      PORT: ${APP_PORT:?APP_PORT is not set. Copy .env.example to .env and set it.}
     # Published for manual browsing only; the test runner reaches the app over the internal network.
     ports:
-      - '${JUICE_SHOP_PORT:-3000}:3000'
+      - '${APP_PORT}:${APP_PORT}'
     networks:
       - qa-net
     # The image is distroless (no curl/wget), so the healthcheck uses its bundled Node runtime.
@@ -14,7 +16,7 @@ services:
         - CMD
         - /nodejs/bin/node
         - -e
-        - "fetch('http://localhost:3000/rest/admin/application-version').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+        - "fetch('http://localhost:' + process.env.PORT + '/rest/admin/application-version').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
       interval: 5s
       timeout: 5s
       retries: 20
