@@ -3,8 +3,9 @@ import { AuthApi, BasketApi, ProductsApi, readJson } from './clients';
 import { newRegistration, uniqueEmail } from './test-data';
 import type { Envelope, LoginResponse, RegisteredUser, SessionUser, User } from './types';
 
-async function registerUser(authApi: AuthApi): Promise<RegisteredUser> {
-  const email = uniqueEmail();
+/** Registers a fresh user; the prefix tells which suite created it (API by default). */
+export async function registerUser(authApi: AuthApi, emailPrefix = 'api'): Promise<RegisteredUser> {
+  const email = uniqueEmail(emailPrefix);
   const registration = newRegistration({ email });
   const response = await authApi.register(registration);
   expect(response.status(), 'register a fresh user').toBe(201);
@@ -12,7 +13,7 @@ async function registerUser(authApi: AuthApi): Promise<RegisteredUser> {
   return { id: data.id, email, password: registration.password };
 }
 
-async function logIn(authApi: AuthApi, user: RegisteredUser): Promise<SessionUser> {
+export async function logIn(authApi: AuthApi, user: RegisteredUser): Promise<SessionUser> {
   const response = await authApi.login({ email: user.email, password: user.password });
   expect(response.status(), 'log in the fresh user').toBe(200);
   const { authentication } = await readJson<LoginResponse>(response);
